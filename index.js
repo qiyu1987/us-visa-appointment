@@ -12,7 +12,7 @@ require('dotenv').config();
     const retryTimeout = 150 * 1000;
     const consularId = process.env.FACILITY_ID;
     const userToken = process.env.PUSH_USER;
-    // const groupAppointment = args.g;
+    const groupAppointment = false;
     const region = process.env.COUNTRY_CODE || 'nl';
     //#endregion
 	
