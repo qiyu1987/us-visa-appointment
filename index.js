@@ -1,19 +1,19 @@
 const puppeteer = require('puppeteer');
-const parseArgs = require('minimist');
 const axios = require('axios');
+require('dotenv').config();
 
 (async () => {
     //#region Command line args
-    const args = parseArgs(process.argv.slice(2), {string: ['u', 'p', 'c', 'a', 'n', 'd', 'r'], boolean: ['g']})
-    const currentDate = new Date(args.d);
-    const usernameInput = args.u;
-    const passwordInput = args.p;
-    const appointmentId = args.a;
-    const retryTimeout = args.t * 1000;
-    const consularId = args.c;
-    const userToken = args.n;
-    const groupAppointment = args.g;
-    const region = args.r;
+    // const args = parseArgs(process.argv.slice(2), {string: ['u', 'p', 'c', 'a', 'n', 'd', 'r'], boolean: ['g']})
+    const currentDate = new Date(process.env.CURRENT_DATE);
+    const usernameInput = process.env.EMAIL;
+    const passwordInput = process.env.PASSWORD;
+    const appointmentId = process.env.SCHEDULE_ID;
+    const retryTimeout = 150 * 1000;
+    const consularId = process.env.FACILITY_ID;
+    const userToken = process.env.PUSH_USER;
+    // const groupAppointment = args.g;
+    const region = process.env.COUNTRY_CODE || 'nl';
     //#endregion
 	
     //#region Helper functions
@@ -114,10 +114,9 @@ const axios = require('axios');
         return;
       }
 
-      const pushOverAppToken = 'a5o8qtigtvu3yyfaeehtnzfkm88zc9';
       const apiEndpoint = 'https://api.pushover.net/1/messages.json';
       const data = {
-        token: pushOverAppToken,
+        token: process.env.PUSH_TOKEN,
         user: userToken,
         message: msg
       };
@@ -130,7 +129,7 @@ const axios = require('axios');
       //#region Init puppeteer
       const browser = await puppeteer.launch();
       // Comment above line and uncomment following line to see puppeteer in action
-      //const browser = await puppeteer.launch({ headless: false });
+      // const browser = await puppeteer.launch({ headless: false });
       const page = await browser.newPage();
       const timeout = 5000;
       const navigationTimeout = 60000;
@@ -227,6 +226,10 @@ const axios = require('axios');
       // We are logged in now. Check available dates from the API
       {
           const targetPage = page;
+          await page.setExtraHTTPHeaders({
+            'Accept': 'application/json, text/javascript, */*; q=0.01',
+            'X-Requested-With': 'XMLHttpRequest'
+          });
           const response = await targetPage.goto('https://ais.usvisa-info.com/en-' + region + '/niv/schedule/' + appointmentId + '/appointment/days/' + consularId + '.json?appointments[expedite]=false');
 
           const availableDates = JSON.parse(await response.text());
@@ -250,6 +253,7 @@ const axios = require('axios');
 
       // Go to appointment page
       {
+          console.log("Going to appointment page");
           const targetPage = page;
           await targetPage.goto('https://ais.usvisa-info.com/en-' + region + '/niv/schedule/' + appointmentId + '/appointment', { waitUntil: 'domcontentloaded' });
           await sleep(1000);
@@ -350,6 +354,7 @@ const axios = require('axios');
           break;
         }
       } catch (err){
+        console.log(err);
         // Swallow the error and keep running in case we encountered an error.
       }
 
